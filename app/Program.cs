@@ -1,19 +1,22 @@
-﻿using Microsoft.AspNetCore;
+﻿using System.IO;
+using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Http;
-using Microsoft.Net.Http.Headers;
-using Peachpie.WordPress.AspNetCore;
-using System;
-using System.IO;
-using System.Linq;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using PeachPied.Demo.Plugins;
+using PeachPied.WordPress.AspNetCore;
+using PeachPied.WordPress.Sdk;
 
-namespace peachserver
+namespace PeachPied.Demo
 {
     class Program
     {
         static void Main(string[] args)
         {
+            Directory.SetCurrentDirectory(Path.GetDirectoryName(typeof(Program).Assembly.Location));
+
+            //
             var host = WebHost.CreateDefaultBuilder(args)
                 .UseStartup<Startup>()
                 .UseUrls("http://*:5004/")
@@ -25,50 +28,21 @@ namespace peachserver
 
     class Startup
     {
-        static void UseWpResponseCaching(IApplicationBuilder app)
+        public void ConfigureServices(IServiceCollection services)
         {
-            // first hack the request headers:
-            app.Use(async (context, next) =>
-            {
-                if (AllowCacheWpResponse(context))
-                {
-                    // public by default
-                    context.Response.GetTypedHeaders().CacheControl = new CacheControlHeaderValue()
-                    {
-                        Public = true,
-                        MaxAge = TimeSpan.FromMinutes(5),
-                    };
-
-                    context.Request.GetTypedHeaders().CacheControl = new CacheControlHeaderValue()
-                    {
-                        Public = true,
-                        MaxAge = TimeSpan.FromMinutes(5),
-                    };
-                }
-
-                // perform the request, WP will set CacheControl to no-cache if necessary:
-                await next();
-            });
-
-            // proceed with caching mechanism: (it checks Cache-Control headers in both Request and Response)
-            app.UseResponseCaching();
+            services.AddMvc();
         }
 
-        static bool AllowCacheWpResponse(HttpContext context)
-            => !context.Request.Cookies.Any(cookie => cookie.Key.StartsWith("wordpress_logged_in"));
-
-        public void Configure(IApplicationBuilder app)
+        public void Configure(IApplicationBuilder app, IHostingEnvironment env, IConfiguration configuration)
         {
-            app.UseDeveloperExceptionPage();
-
-            //UseWpResponseCaching(app);
-            app.UseWordPress(new WordPressConfig()
+            if (env.IsDevelopment())
             {
-                DbHost = "localhost",
-                DbPassword = "password",
-                DbUser = "root",
-                DbName = "wordpress",
-            });
+                app.UseDeveloperExceptionPage();
+            }
+
+            app.UseWordPress(plugins: new WpPluginContainer()
+                .Add<DashboardPlugin>()
+                .Add<ShortcodePlugin>());
 
             app.UseDefaultFiles();
         }

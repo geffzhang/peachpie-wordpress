@@ -1,42 +1,39 @@
-<img src="https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/WordPress_logo.svg/2000px-WordPress_logo.svg.png" width="400"/>
+This project demonstrates how to start an ASP.NET Core server, integrate WordPress into its pipeline and add additional PHP plugins into it.
 
-## WordPress Sample
+# WordPress
 
-The goal of this sample is to fully compile an unmodified clone of WordPress into .NET/.NET Core. The project consists of several parts:
+Even though the project is noticeably small, it contains the entire WordPress CMS. How? This complex PHP web framework was already compiled into the .NET Standard library (see [PeachPie compiler platform](https://github.com/peachpiecompiler/peachpie) for more information) and packed into a NuGet package. This demo may just reference it.
 
-- `WordPress` contains sources of WordPress that are compiled into a single .NET Core assembly (`website.dll`) and WordPress content files that will be served by web server.
-- `app` project is executable sample ASP.NET Core web server bootstrapping scripts from `WordPress`.
+To find out more about PeachPie, check out our [resources](https://www.peachpie.io/resources), which includes tutorials, benchmarks and articles on PeachPie.
 
-## What does this do?
+# WordPress PHP Plugin
 
-This sample contains the complete source code of WordPress with none or little  modifications. The purpose is for this code to be compiled by Peachpie, resulting in the output running purely on Microsoft .NET Core. 
+With this approach it is finally possible to have a project containing only the plugin. WordPress itself is already compiled and the plugin has a dependency on it (like any other C# app you would make).
 
-Therefore, if everything works as it should, you will see the standard unchanged WordPress in the same way as you would in the traditional PHP version. The difference is that the compiled website runs on .NET Core in the background. 
+The build process will do following:
+- compiles `.php` files within the `PeachPied.WordPress.MyPlugin` directory. Note that the path `wp-content/plugins` matters.
+- packs the compiled DLL together with content files (like images, scripts etc.) into a NuGet package.
+- copies the project content into the application output directory, together with WordPress content files extracted from its NuGet.
 
-## How does this work?
+# WordPress C# plugin
 
-The PHP sources in `website` are compiled to .NET Core by Peachpie compiler, which is seamlessly downloaded by *dotnet* itself.
+The project takes advantage of the `wpdotnet SDK` which provides a C# abstraction `IWpPlugin`. Objects of this type can be passed to the WordPress middleware (see `UseWordPress`) and hook onto filters and actions available in the WordPress API.
 
-The sample instantiates Kestrel - the opensource web server - and the ASP.NET Core pipeline. The pipeline handles requests to PHP files using the Peachpie `RequestDelegate` by calling the corresponding compiled scripts in `website.dll`.
+// TODO: add link to additional info about the wpdotnet SDK & WordPress API
 
-Note that the original PHP sources (\*.php files) in `website` are not needed to run the compiled application, however, WordPress accesses some files using file-system functions and requires them there.
+# Configuration
 
-## Possible Use Cases
+The configuration itself serves as a demonstration of combining a legacy PHP application with .NET. The demo takes advantage of the ASP.NET Core configuration mechanism, namely the files `appsettings.json`, `appsettings.deployment.json` and `appsettings.production.json`. This allows for having a different configuration for each environment without the need of altering the source code of the project.
 
-- **Improve performance**: compiled code is fast and also optimized by the .NET 'Jitter' for your actual system. Additionally, the .NET performance profiler may be used to resolve bottlenecks.
-- **Write plugins in C#**: plugin functionality can be implemented in a separate C# project and/or PHP plugins may use .NET libraries. Utilize .NET with all its advantages like sourceless distribution or type safe and compiled code, which is further optimized and checked for the actual platform.
-- **Integrate WP into a .NET application**: drive the WordPress lifecycle from a C# app, run within the Kestrel Web Server.
-- **'Almost' sourceless distribution**: after the compilation, most of the source files are not needed.
-- **Take advantage** of the .NET runtime: jittered, secure and manageable platform.
+// TODO: add read more about asp.net core config
 
-## Prerequisites
+# Sourceless Distribution
 
-- .NET Core 2.0 or newer
-- MySQL server running on a preconfigured port (3306)
-- Optionally - Visual Studio 2017 or Visual Studio Code using the official Peachpie for VSCode extension available on the [Marketplace](https://marketplace.visualstudio.com/items?itemName=iolevel.peachpie-vscode)
+The WordPress package was already configured, so the original PHP source code is not a part of the NuGet nor of the compiled DLL. In case of additional plugins (see `PeachPied.WordPress.MyPlugin`), it depends what source files are needed in run time. Usually only the main plugin file (containing the WordPress metadata) has to be distributed together with the DLL, so that WordPress can read its content and work properly. The other files can be excluded from the package.
 
-## How to run the project
-
-0. start mysql, at `localhost:3306`, user `root`, password `password`
-1. `cd app`
-2. `dotnet run`
+As a result, this project serves as a demonstration of:
+- distributing the WordPress plugin without its source codes
+- build and maintain plugins separately as separate NuGet packages
+- maintaining/providing plugins with a dependency on a certain WordPress version
+- signing the plugin with a private key
+- possibly obfuscating the DLL
