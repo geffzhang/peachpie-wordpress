@@ -6,7 +6,7 @@
     <!-- $(WpDotNetVersion) property from the current PeachPied.WordPress.Build.Plugin -->
     <Import Project="Version.props" Sdk="PeachPied.WordPress.Build.Plugin" Condition=" '$(WpDotNetVersion)'=='' " />
     <!--PropertyGroup>
-        <WpDotNetVersion>6.5.4-rc-020</WpDotNetVersion>
+        <WpDotNetVersion>6.7.1</WpDotNetVersion>
     </PropertyGroup-->
 
 </Project>
